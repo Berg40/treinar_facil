@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treino Fácil</title>
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+  <header> 
+      <h1>🥊TreinoFácil</h1>
+  </header>
+  
+  <main class="container">
+    <div class="info1">Escolha um grupo e nível e clique em <strong>Gerar treino</strong>.</div>
+
+    <div class="card">
+      <div class="controls">
+        <label>
+          Grupo muscular:
+          <select id="groupSelect"></select>
+        </label>
+
+        <label>
+          Nível:
+          <select id="levelSelect">
+            <option value="iniciante">Iniciante</option>
+            <option value="moderado">Moderado</option>
+            <option value="avancado">Avançado</option>
+          </select>
+        </label>
+        <div style="flex:1"></div>
+      </div>
+
+      <button class="btn1" id="genBtn" style="margin-top: 30px;">Gerar treino</button>
+      <button class="btn1" id="randomBtn">Gerar aleatório</button>
+      <button class="btn1" id="calculadora" style="background: rgba(139, 139, 41, 0.781);">Calculadora Fitness</button>
+
+      <h3 style="text-align: center;">➕Consultar Treino</h3> 
+      
+      <!-- Adicionar treino -->
+      <div class="card2" id="addWorkout" >
+          <select style="margin-bottom: 30px;" id="grupoNovo"></select>
+          <label for="gifNovo"></label>
+          <select id="gifNovo"></select>
+      </div>
+
+      <div class="timer-container">
+            <h1>⏱ Timer em Segundos</h1>
+            <input type="number" id="secondsInput" placeholder="Segundos" min="1">
+            <button id="startPauseBtn">Iniciar</button>
+
+            <div class="timer-circle">
+                <svg width="200" height="200">
+                    <circle class="bg" cx="100" cy="100" r="90"></circle>
+                    <circle class="progress" cx="100" cy="100" r="90"></circle>
+                </svg>
+                <div class="time-display" id="timeDisplay">00:00</div>
+            </div>
+
+            <audio id="gongSound" src="audio/gong-sound2.mp3" preload="auto"></audio>
+        </div>
+            
+    
+
+    </div>
+
+    <div id="result" class="card" style="margin-top:14px">
+        <div class="info"></div>
+        <div id="preview" class="preview"></div>
+    </div>
+
+    <div style="height:12px"></div>
+    <div class="card">
+      <div class="info">Como funciona: cada lista de GIFs é dividida automaticamente em 3 níveis (iniciante/moderado/avançado).</div>
+    </div>
+
+  </main>
+
+  <footer>Copyrigth&copy; Berg Andrade 2025.</footer>
+
+  <!-- Script principal -->
+  <script src="script.js"></script>
+
+  <script>
+    const secondsInput = document.getElementById('secondsInput');
+    const startPauseBtn = document.getElementById('startPauseBtn');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const gongSound = document.getElementById('gongSound');
+    const progressCircle = document.querySelector('.progress');
+
+    let totalSeconds = 0;
+    let remainingSeconds = 0;
+    let timer = null;
+    let isRunning = false;
+
+    const radius = 90;
+    const circumference = 2 * Math.PI * radius;
+    progressCircle.style.strokeDasharray = circumference;
+    progressCircle.style.strokeDashoffset = circumference;
+
+    function updateDisplay() {
+        let minutes = Math.floor(remainingSeconds / 60);
+        let seconds = remainingSeconds % 60;
+        timeDisplay.textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+        const offset = circumference - (remainingSeconds / totalSeconds) * circumference;
+        progressCircle.style.strokeDashoffset = offset;
+    }
+
+    function resetTimer(preserveInput = true) {
+        clearInterval(timer);
+        timer = null;
+        isRunning = false;
+        remainingSeconds = totalSeconds;
+        if (!preserveInput) {
+            totalSeconds = 0;
+            secondsInput.value = '';
+            timeDisplay.textContent = "00:00";
+            progressCircle.style.strokeDashoffset = circumference;
+            startPauseBtn.textContent = 'Iniciar';
+        } else {
+            updateDisplay();
+            startPauseBtn.textContent = 'Iniciar';
+            progressCircle.style.strokeDashoffset = circumference;
+        }
+    }
+
+    function tick() {
+        if (remainingSeconds > 0) {
+            remainingSeconds--;
+            updateDisplay();
+        } else {
+            clearInterval(timer);
+            isRunning = false;
+            gongSound.play();
+            
+            resetTimer(true); // Mantém último valor digitado para reiniciar
+        }
+    }
+
+    startPauseBtn.addEventListener('click', () => {
+        if (!isRunning) {
+            if (totalSeconds === 0) {
+                let seconds = parseInt(secondsInput.value);
+                if (isNaN(seconds) || seconds <= 0) {
+                    alert("Digite um tempo válido!");
+                    return;
+                }
+                totalSeconds = seconds;
+                remainingSeconds = totalSeconds;
+                updateDisplay();
+            }
+            timer = setInterval(tick, 1000);
+            startPauseBtn.textContent = 'Pausar';
+            isRunning = true;
+        } else {
+            clearInterval(timer);
+            startPauseBtn.textContent = 'Continuar';
+            isRunning = false;
+        }
+    });
+</script>
+
+  
+
+</body>
+</html>
