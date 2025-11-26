@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plano Alimentar Inteligente PRO</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <!-- Libs PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+        :root { --bg:#0f172a; --card:#1e293b; --primary:#10b981; --gold:#fbbf24; --text:#f8fafc; }
+        body { background:var(--bg); color:var(--text); font-family:'Inter', sans-serif; margin:0; padding:20px; line-height:1.5; }
+        .container { max-width:850px; margin:0 auto; }
+        
+        header { text-align:center; margin-bottom:30px; border-bottom:1px solid #334155; padding-bottom:20px; }
+        h1 { color:var(--primary); margin:0; display:flex; justify-content:center; gap:10px; align-items:center; }
+        
+        /* Botões de Objetivo */
+        .goal-selector { background:var(--card); padding:20px; border-radius:12px; text-align:center; margin-bottom:30px; }
+        .goal-options { display:flex; gap:10px; justify-content:center; margin-top:15px; flex-wrap:wrap; }
+        .goal-btn {
+            background:#334155; border:2px solid transparent; color:#ccc; padding:15px 25px;
+            border-radius:8px; cursor:pointer; flex:1; min-width:120px; transition:0.2s;
+        }
+        .goal-btn.active { background:var(--primary); color:#000; font-weight:bold; border-color:var(--primary); transform:scale(1.05); }
+
+        /* Cardápio */
+        #meal-plan { display:none; animation:fadeIn 0.5s; }
+        #area-pdf { background:var(--bg); padding:15px; border-radius:10px; }
+        
+        .macro-summary {
+            display:grid; grid-template-columns:repeat(3, 1fr); gap:10px;
+            background:#1e293b; padding:15px; border-radius:10px; margin-bottom:20px; text-align:center;
+            border:1px solid #334155;
+        }
+        .macro-val { font-size:1.5rem; font-weight:bold; margin:0; }
+        .macro-label { font-size:0.8rem; color:#94a3b8; text-transform:uppercase; }
+
+        .meal-card {
+            background:var(--card); border-radius:10px; padding:20px; margin-bottom:15px;
+            border-left:4px solid var(--gold); box-shadow:0 4px 6px rgba(0,0,0,0.2);
+        }
+        .meal-header { display:flex; align-items:center; gap:10px; color:var(--gold); font-weight:bold; margin-bottom:15px; font-size:1.1rem; }
+        
+        /* Lista de Alimentos */
+        .food-row {
+            display:grid; grid-template-columns: 1.5fr 1fr; gap:10px; align-items:center;
+            padding:10px 0; border-bottom:1px solid #334155;
+        }
+        .food-row:last-child { border:none; }
+        
+        select {
+            background:#0f172a; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; width:100%; font-size:0.9rem;
+        }
+        .food-info { text-align:right; font-size:0.9rem; }
+        .food-qtd { color:var(--primary); font-weight:bold; display:block; font-size:1.1rem; }
+        .food-cal { color:#94a3b8; font-size:0.8rem; }
+
+        /* Botões Ação */
+        .btn-action {
+            background:var(--primary); color:#000; border:none; width:100%; padding:16px;
+            border-radius:8px; font-weight:bold; cursor:pointer; margin-top:20px; font-size:1rem;
+            display:flex; align-items:center; justify-content:center; gap:8px;
+        }
+        .btn-outline { background:transparent; border:1px solid #475569; color:#94a3b8; }
+        
+        /* Overlay Loading */
+        #loading {
+            display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85);
+            z-index:999; justify-content:center; align-items:center; flex-direction:column; color:#fff;
+        }
+
+        @keyframes fadeIn { from{opacity:0;transform:translateY(10px);} to{opacity:1;transform:translateY(0);} }
+        
+        /* Print Clean */
+        .print-only { display:none; }
+    </style>
+</head>
+<body>
+
+<div id="loading">
+    <span class="material-icons-round" style="font-size:40px; animation:spin 1s infinite linear">autorenew</span>
+    <p>Gerando PDF Profissional...</p>
+</div>
+
+<div class="container">
+    <header>
+        <h1><span class="material-icons-round">restaurant_menu</span> NutriAI Pro</h1>
+        <p>Seu nutricionista de bolso. Escolha o objetivo e monte o prato.</p>
+    </header>
+
+    <!-- Passo 1: Objetivo -->
+    <section class="goal-selector">
+        <h3 style="margin-top:0">Qual seu objetivo atual?</h3>
+        <div class="goal-options">
+            <button class="goal-btn" onclick="setGoal('emagrecer', this)">
+                <span class="material-icons-round">local_fire_department</span><br>Secar
+            </button>
+            <button class="goal-btn" onclick="setGoal('manter', this)">
+                <span class="material-icons-round">balance</span><br>Manter
+            </button>
+            <button class="goal-btn" onclick="setGoal('ganhar', this)">
+                <span class="material-icons-round">fitness_center</span><br>Ganhar Massa
+            </button>
+        </div>
+    </section>
+
+    <!-- Passo 2: Dieta -->
+    <section id="meal-plan">
+        <div id="area-pdf">
+            <div class="print-only" style="text-align:center; margin-bottom:20px; color:#10b981; font-weight:bold; font-size:1.5rem;">
+                Meu Plano Alimentar Personalizado
+            </div>
+
+            <!-- Resumo Macros -->
+            <div class="macro-summary">
+                <div><p class="macro-val" id="v-kcal">0</p><span class="macro-label">Kcal/Dia</span></div>
+                <div><p class="macro-val" id="v-prot" style="color:#fbbf24">0g</p><span class="macro-label">Proteína</span></div>
+                <div><p class="macro-val" id="v-carb" style="color:#10b981">0g</p><span class="macro-label">Carbo</span></div>
+            </div>
+
+            <!-- Container de Refeições -->
+            <div id="meals-container"></div>
+            
+            <div style="text-align:center; margin-top:20px; font-size:0.8rem; color:#666; border-top:1px solid #334155; padding-top:10px;">
+                * Beba pelo menos 35ml de água por kg de peso corporal.<br>
+                * Medidas caseiras são aproximadas. Use balança para precisão total.
+            </div>
+        </div>
+
+        <button class="btn-action" onclick="downloadPDF()">
+            <span class="material-icons-round">picture_as_pdf</span> Baixar Dieta em PDF
+        </button>
+        <button class="btn-action btn-outline" onclick="window.location.href='calculadora.html'">
+            Voltar para Calculadora
+        </button>
+    </section>
+</div>
+
+<script>
+    // ============================================================
+    // 1. BANCO DE DADOS EXTENDIDO COM MEDIDAS CASEIROS E CALORIAS
+    // ============================================================
+    // medidaDesc: Texto para mostrar ao usuário (ex: "1 colher de sopa")
+    // pesoMedida: Peso em gramas dessa medida (ex: 25g)
+    // calPorMedida: Calorias aproximadas nessa medida
+    // macros100g: { c: carbo, p: prot, g: gordura } para cálculos precisos
+    
+    const DB = {
+        // --- CARBOIDRATOS (Base) ---
+        carbo_cafe: [
+            { nome: "Pão Integral", medida: "fatia(s)", peso: 25, cal: 65, macros100g: {c:48, p:9, g:3} },
+            { nome: "Pão Francês", medida: "unidade(s)", peso: 50, cal: 140, macros100g: {c:58, p:8, g:3} },
+            { nome: "Tapioca (goma)", medida: "colher(es) sopa", peso: 20, cal: 48, macros100g: {c:60, p:0, g:0} },
+            { nome: "Cuscuz de Milho (cozido)", medida: "xícara(s)", peso: 100, cal: 112, macros100g: {c:23, p:2, g:0} },
+            { nome: "Aveia em Flocos", medida: "colher(es) sopa", peso: 15, cal: 53, macros100g: {c:60, p:14, g:7} },
+            { nome: "Banana Prata", medida: "unidade(s) média", peso: 70, cal: 68, macros100g: {c:23, p:1, g:0} },
+            { nome: "Mamão Papaia", medida: "metade(s)", peso: 150, cal: 60, macros100g: {c:10, p:0.5, g:0} }
+        ],
+        carbo_almoco: [
+            { nome: "Arroz Branco Cozido", medida: "colher(es) sopa cheia", peso: 25, cal: 32, macros100g: {c:28, p:2.5, g:0} },
+            { nome: "Arroz Integral", medida: "colher(es) sopa cheia", peso: 25, cal: 30, macros100g: {c:26, p:2.6, g:1} },
+            { nome: "Macarrão Cozido", medida: "pegador(es)", peso: 80, cal: 120, macros100g: {c:30, p:5, g:1} },
+            { nome: "Batata Inglesa Cozida", medida: "unidade(s) média", peso: 100, cal: 85, macros100g: {c:19, p:2, g:0} },
+            { nome: "Batata Doce Cozida", medida: "rodela(s) grossa", peso: 60, cal: 50, macros100g: {c:20, p:1, g:0} },
+            { nome: "Purê de Batata", medida: "colher(es) sopa", peso: 30, cal: 35, macros100g: {c:15, p:2, g:2} },
+            { nome: "Mandioca Cozida", medida: "pedaço(s) médio", peso: 50, cal: 80, macros100g: {c:30, p:1, g:0} }
+        ],
+
+        // --- PROTEÍNAS ---
+        prot_cafe: [
+            { nome: "Ovos Cozidos/Mexidos", medida: "unidade(s)", peso: 50, cal: 70, macros100g: {c:1, p:13, g:5} },
+            { nome: "Claras de Ovo", medida: "unidade(s)", peso: 35, cal: 17, macros100g: {c:0, p:11, g:0} },
+            { nome: "Queijo Minas Frescal", medida: "fatia(s) média", peso: 30, cal: 75, macros100g: {c:3, p:17, g:15} },
+            { nome: "Requeijão Light", medida: "colher(es) sopa", peso: 30, cal: 50, macros100g: {c:2, p:12, g:4} },
+            { nome: "Whey Protein", medida: "dosador(es)", peso: 30, cal: 120, macros100g: {c:3, p:80, g:1} },
+            { nome: "Iogurte Natural Desn.", medida: "pote(s)", peso: 170, cal: 80, macros100g: {c:5, p:4, g:0} }
+        ],
+        prot_almoco: [
+            { nome: "Peito de Frango Grelhado", medida: "filé(s) médio", peso: 100, cal: 160, macros100g: {c:0, p:31, g:3} },
+            { nome: "Carne Moída (Patinho)", medida: "colher(es) sopa", peso: 30, cal: 60, macros100g: {c:0, p:30, g:7} },
+            { nome: "Filé de Tilápia", medida: "filé(s) grande", peso: 120, cal: 115, macros100g: {c:0, p:26, g:2} },
+            { nome: "Bife de Alcatra", medida: "bife(s) peq.", peso: 80, cal: 150, macros100g: {c:0, p:30, g:9} },
+            { nome: "Omelete (Ovos)", medida: "ovo(s)", peso: 50, cal: 70, macros100g: {c:1, p:13, g:5} }
+        ],
+
+        // --- GORDURAS ---
+        gorduras: [
+            { nome: "Azeite de Oliva", medida: "colher(es) chá", peso: 5, cal: 45, macros100g: {c:0, p:0, g:100} },
+            { nome: "Pasta de Amendoim", medida: "colher(es) sopa", peso: 15, cal: 90, macros100g: {c:20, p:25, g:50} },
+            { nome: "Abacate", medida: "colher(es) sopa", peso: 30, cal: 48, macros100g: {c:9, p:2, g:15} },
+            { nome: "Castanha do Pará", medida: "unidade(s)", peso: 5, cal: 33, macros100g: {c:12, p:14, g:66} }
+        ]
+    };
+
+    // --- LÓGICA PRINCIPAL ---
+    let MetaDia = { kcal:0, p:0, c:0, g:0 };
+    let MetaRef = {}; // Armazena metas por refeição { cafe: {c:30, p:20}, ... }
+    const dadosUser = JSON.parse(localStorage.getItem("dadosUsuarioFitness")) || {};
+    
+    // Se não tiver dados, simula para teste (remover em produção)
+    if(!dadosUser.peso) { alert("Dados não encontrados. Calcule primeiro."); window.location.href="calculadora.html"; }
+
+    function setGoal(tipo, btn) {
+        document.querySelectorAll('.goal-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        
+        // 1. Calcula Metas Diárias
+        const peso = dadosUser.peso;
+        const get = dadosUser.get;
+        
+        if(tipo === 'emagrecer') {
+            MetaDia.kcal = get - 500;
+            MetaDia.p = peso * 2.2;
+            MetaDia.g = peso * 0.7;
+        } else if(tipo === 'ganhar') {
+            MetaDia.kcal = get + 350;
+            MetaDia.p = peso * 2.0;
+            MetaDia.g = peso * 1.0;
+        } else {
+            MetaDia.kcal = get;
+            MetaDia.p = peso * 1.8;
+            MetaDia.g = peso * 0.9;
+        }
+        // Carbo = Restante
+        MetaDia.c = (MetaDia.kcal - (MetaDia.p*4) - (MetaDia.g*9)) / 4;
+        if(MetaDia.c < 50) MetaDia.c = 50;
+
+        // Atualiza Topo
+        document.getElementById('v-kcal').innerText = Math.round(MetaDia.kcal);
+        document.getElementById('v-prot').innerText = Math.round(MetaDia.p) + "g";
+        document.getElementById('v-carb').innerText = Math.round(MetaDia.c) + "g";
+
+        // 2. Distribui Metas por Refeição (Peso relativo)
+        MetaRef = {
+            cafe:   { c: MetaDia.c * 0.25, p: MetaDia.p * 0.25, g: 0 },
+            almoco: { c: MetaDia.c * 0.35, p: MetaDia.p * 0.35, g: 5 },
+            lanche: { c: MetaDia.c * 0.15, p: MetaDia.p * 0.15, g: 0 },
+            jantar: { c: MetaDia.c * 0.25, p: MetaDia.p * 0.25, g: 5 }
+        };
+
+        renderPlan();
+        document.getElementById('meal-plan').style.display = 'block';
+    }
+
+    // Calcula quantidade baseada na meta do nutriente
+    function calcQtd(metaGramas, alimento, nutrienteChave) {
+        // Regra de 3: Se 100g tem X nutriente, quanto preciso pra ter Meta?
+        const gramasComida = (metaGramas * 100) / alimento.macros100g[nutrienteChave];
+        // Converte para medida caseira
+        const qtdMedida = gramasComida / alimento.peso;
+        // Arredonda para 0.5 mais próximo
+        let final = Math.round(qtdMedida * 2) / 2;
+        if(final < 0.5) final = 0.5;
+        
+        const totalCal = (gramasComida * alimento.cal) / alimento.peso; // Regra de 3 calorias
+        
+        return { 
+            qtd: final, 
+            texto: `${final} ${alimento.medida}`, 
+            cal: Math.round(totalCal) 
+        };
+    }
+
+    function renderPlan() {
+        const container = document.getElementById('meals-container');
+        container.innerHTML = "";
+
+        // Configuração de Refeições
+        const structure = [
+            { 
+                id: 'cafe', title: "Café da Manhã", icon: "bakery_dining",
+                slots: [
+                    { type: 'carbo_cafe', nutri: 'c', sel: 0 }, // Pão
+                    { type: 'prot_cafe', nutri: 'p', sel: 0 }   // Ovo
+                ]
+            },
+            { 
+                id: 'almoco', title: "Almoço", icon: "restaurant",
+                slots: [
+                    { type: 'carbo_almoco', nutri: 'c', sel: 0 }, // Arroz
+                    { type: 'prot_almoco', nutri: 'p', sel: 0 },  // Frango
+                    { type: 'static', name: "Feijão Carioca", qtd: "1 concha média", cal: 95 },
+                    { type: 'static', name: "Salada Verde", qtd: "À vontade", cal: 15 }
+                ]
+            },
+            { 
+                id: 'lanche', title: "Lanche", icon: "eco",
+                slots: [
+                    { type: 'carbo_cafe', nutri: 'c', sel: 5 }, // Fruta
+                    { type: 'prot_cafe', nutri: 'p', sel: 4 }   // Whey/Iogurte
+                ]
+            },
+            { 
+                id: 'jantar', title: "Jantar", icon: "nights_stay",
+                slots: [
+                    { type: 'carbo_almoco', nutri: 'c', sel: 4 }, // Batata/Raiz
+                    { type: 'prot_almoco', nutri: 'p', sel: 1 },  // Carne
+                    { type: 'gorduras', nutri: 'g', sel: 0 }      // Azeite
+                ]
+            }
+        ];
+
+        structure.forEach((ref, rIdx) => {
+            const card = document.createElement('div');
+            card.className = 'meal-card';
+            let content = `<div class="meal-header"><span class="material-icons-round">${ref.icon}</span> ${ref.title}</div>`;
+            
+            ref.slots.forEach((slot, sIdx) => {
+                if(slot.type === 'static') {
+                    content += `
+                    <div class="food-row">
+                        <div style="color:#ccc; padding-left:10px">${slot.name}</div>
+                        <div class="food-info">
+                            <span class="food-qtd">${slot.qtd}</span>
+                            <span class="food-cal">aprox. ${slot.cal} kcal</span>
+                        </div>
+                    </div>`;
+                    return;
+                }
+
+                const lista = DB[slot.type];
+                // Gera Options
+                const options = lista.map((a, i) => 
+                    `<option value="${i}" ${i === slot.sel ? 'selected' : ''}>${a.nome} (${a.cal}kcal/${a.medida})</option>`
+                ).join('');
+
+                // Calcula inicial
+                const alimentoInit = lista[slot.sel];
+                const metaQtd = MetaRef[ref.id][slot.nutri];
+                const dadosInit = calcQtd(metaQtd, alimentoInit, slot.nutri);
+
+                content += `
+                <div class="food-row">
+                    <div>
+                        <select onchange="updateRow(this, ${rIdx}, ${sIdx}, '${ref.id}', '${slot.type}', '${slot.nutri}')">
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="food-info" id="info-${rIdx}-${sIdx}">
+                        <span class="food-qtd">${dadosInit.texto}</span>
+                        <span class="food-cal">~${dadosInit.cal} kcal</span>
+                    </div>
+                </div>`;
+            });
+            card.innerHTML = content;
+            container.appendChild(card);
+        });
+    }
+
+    window.updateRow = function(select, rIdx, sIdx, refId, type, nutri) {
+        const index = select.value;
+        const alimento = DB[type][index];
+        const meta = MetaRef[refId][nutri];
+        const dados = calcQtd(meta, alimento, nutri);
+        
+        document.getElementById(`info-${rIdx}-${sIdx}`).innerHTML = `
+            <span class="food-qtd">${dados.texto}</span>
+            <span class="food-cal">~${dados.cal} kcal</span>
+        `;
+    }
+
+    window.downloadPDF = function() {
+        document.getElementById('loading').style.display = 'flex';
+        document.querySelector('.print-only').style.display = 'block';
+        
+        // Prepara selects para impressão (transforma em texto)
+        const selects = document.querySelectorAll('select');
+        const originalStyles = [];
+        selects.forEach((s, i) => {
+            const text = s.options[s.selectedIndex].text.split('(')[0]; // Pega só o nome
+            const span = document.createElement('span');
+            span.innerText = text;
+            span.className = 'pdf-text';
+            span.style.color = '#fff';
+            span.style.fontWeight = 'bold';
+            
+            s.parentNode.insertBefore(span, s);
+            originalStyles[i] = s.style.display;
+            s.style.display = 'none';
+        });
+
+        setTimeout(() => {
+            html2canvas(document.getElementById('area-pdf'), {
+                backgroundColor: "#0f172a", scale: 2,
+                windowHeight: document.getElementById('area-pdf').scrollHeight + 100
+            }).then(canvas => {
+                const img = canvas.toDataURL('image/png');
+                const pdf = new window.jspdf.jsPDF('p', 'mm', 'a4');
+                const w = 210; const h = 297;
+                const imgH = (canvas.height * w) / canvas.width;
+                
+                let heightLeft = imgH;
+                let pos = 0;
+
+                pdf.addImage(img, 'PNG', 0, pos, w, imgH);
+                heightLeft -= h;
+                
+                while(heightLeft >= 0) {
+                    pos = heightLeft - imgH;
+                    pdf.addPage();
+                    pdf.addImage(img, 'PNG', 0, pos, w, imgH);
+                    heightLeft -= h;
+                }
+
+                pdf.save('Dieta-TreinoFacil.pdf');
+                
+                // Reset
+                document.querySelectorAll('.pdf-text').forEach(e => e.remove());
+                selects.forEach((s, i) => s.style.display = originalStyles[i]);
+                document.querySelector('.print-only').style.display = 'none';
+                document.getElementById('loading').style.display = 'none';
+            });
+        }, 800);
+    }
+</script>
+
+<style>
+    /* Animação Spin */
+    @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+</style>
+
+</body>
+</html>

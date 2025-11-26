@@ -433,218 +433,202 @@ const gifs = {
     ]
     };
 
-   /* ====== FUNÇÕES HELPERS ====== */
+
+// Função Helper: Limpa o nome do arquivo para exibição
 function cleanName(path) {
-    return path.split("/").pop().replace(".gif", "").replace(/_/g, " ").trim();
+    if(!path) return "";
+    return path.split("/").pop().replace(".gif", "").replace(/_/g, " ").replace(/-/g, " ").trim();
 }
 
-function splitIntoLevels(arr) {
-    const n = arr.length;
-    if (n === 0) return { iniciante: [], moderado: [], avancado: [] };
-    const part = Math.ceil(n / 3);
-    return {
-        iniciante: arr.slice(0, part),
-        moderado: arr.slice(part, part * 2),
-        avancado: arr.slice(part * 2)
-    };
+// Função Helper: Embaralha um array (Algoritmo Fisher-Yates)
+// Isso garante que o treino varie todo dia!
+function shuffleArray(array) {
+    let currentIndex = array.length, randomIndex;
+    // Copia o array para não alterar o original permanentemente
+    let newArray = [...array]; 
+
+    while (currentIndex != 0) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+        [newArray[currentIndex], newArray[randomIndex]] = [newArray[randomIndex], newArray[currentIndex]];
+    }
+    return newArray;
 }
 
-/* ====== PRECOMPUTE LEVELS ====== */
-const levels = {};
-for (const g in gifs) {
-    levels[g] = splitIntoLevels(gifs[g]);
+// Função Principal: Gera o treino baseado no Nível + Randomização
+function getExercisesByLevel(group, level) {
+    const allExercises = gifs[group] || [];
+    
+    // Adiciona exercícios personalizados salvos (se houver)
+    const savedCustom = JSON.parse(localStorage.getItem("treinosPersonalizados")) || {};
+    const customExercises = savedCustom[group]?.[level] || [];
+    
+    // Junta tudo e embaralha para dar variedade
+    let pool = shuffleArray([...allExercises, ...customExercises]);
+    
+    // Define quantos exercícios mostrar por nível
+    let count;
+    if (level === 'iniciante') count = 4;      // Treino curto
+    else if (level === 'moderado') count = 5;  // Treino médio
+    else count = 7;                            // Treino longo (Avançado)
+
+    // Garante que não tentamos pegar mais exercícios do que existem
+    return pool.slice(0, Math.min(count, pool.length));
 }
 
-/* ====== POPULA SELECT DE GRUPOS ====== */
-const groupSelect = document.getElementById("groupSelect");
-Object.keys(gifs).forEach(k => {
-    const opt = document.createElement("option");
-    opt.value = k;
-    opt.textContent = k.charAt(0).toUpperCase() + k.slice(1);
-    groupSelect.appendChild(opt);
-});
-
-/* ====== ELEMENTOS DOM ====== */
-const preview = document.getElementById("preview");
-const info = document.querySelector("#result .info");
-
-/* ====== FUNÇÃO PRINCIPAL ====== */
+// Função de Exibição no HTML
 function showExercises(group, level) {
-    preview.innerHTML = "";
+    const preview = document.getElementById("preview");
+    const info = document.querySelector("#result .info");
+    const resultCard = document.getElementById("result");
 
-    const list = levels[group]?.[level] || [];
-    const treinosPersonalizados = JSON.parse(localStorage.getItem("treinosPersonalizados")) || {};
-    const personalizados = treinosPersonalizados[group]?.[level] || [];
-
-    const listaFinal = [...list, ...personalizados];
+    // Gera a lista embaralhada
+    const listaFinal = getExercisesByLevel(group, level);
 
     if (listaFinal.length === 0) {
-        info.textContent = `Nenhum exercício encontrado para "${group}" (${level}).`;
+        alert(`Ainda não temos exercícios cadastrados para ${group}.`);
         return;
     }
 
-    let repeticoesPadrao;
-    if (level === "iniciante") repeticoesPadrao = "3 séries de 12 repetições";
-    else if (level === "moderado") repeticoesPadrao = "4 séries de 12 a 15 repetições";
-    else repeticoesPadrao = "5 séries de 15 repetições";
+    // Define repetições baseadas no nível
+    let repeticoesTexto;
+    if (level === "iniciante") repeticoesTexto = "3 séries de 10 a 12 repetições";
+    else if (level === "moderado") repeticoesTexto = "4 séries de 8 a 12 repetições";
+    else repeticoesTexto = "4 séries de 12 repetições + Dropset na última";
 
-    info.textContent = `Mostrando ${listaFinal.length} exercícios — ${group} / ${level}`;
+    // Exibe o card de resultado
+    resultCard.style.display = "block";
+    info.innerHTML = `<strong>Treino de ${group.toUpperCase()} (${level})</strong><br><small>${repeticoesTexto}</small>`;
+    
+    preview.innerHTML = ""; // Limpa anterior
 
-    listaFinal.forEach(p => {
+    listaFinal.forEach((src, index) => {
         const card = document.createElement("div");
-        card.className = "gifCard";
+        card.className = "workout-item"; // Classe do novo CSS
+        
+        // Cria estrutura do Card
+        card.innerHTML = `
+            <div class="workout-content" style="display: flex; align-items: center; gap: 15px;">
+                <img src="${src}" alt="${cleanName(src)}" class="thumb-img" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer;">
+                <div>
+                    <h4 style="margin-bottom: 5px; color: #fff;">${index + 1}. ${cleanName(src)}</h4>
+                    <p style="font-size: 0.8rem; color: #ccc;">${repeticoesTexto}</p>
+                </div>
+            </div>
+        `;
 
-        const img = document.createElement("img");
-        img.src = p;
-        img.alt = cleanName(p);
-        img.classList.add("treino-img");
+        // Adiciona evento de clique na imagem para abrir modal (Zoom)
+        const img = card.querySelector("img");
+        img.addEventListener("click", () => openModal(src));
 
-        // Modal ao clicar
-        img.addEventListener("click", () => {
-            const modal = document.createElement("div");
-            modal.className = "modal";
-
-            const modalContent = document.createElement("div");
-            modalContent.className = "modal-content";
-
-            const bigImg = document.createElement("img");
-            bigImg.src = p;
-            bigImg.className = "modal-img";
-
-            const closeBtn = document.createElement("button");
-            closeBtn.textContent = "Fechar ✖";
-            closeBtn.className = "close-btn";
-
-            closeBtn.addEventListener("click", () => modal.remove());
-            modal.addEventListener("click", (e) => { if (e.target === modal) modal.remove(); });
-
-            modalContent.appendChild(bigImg);
-            modalContent.appendChild(closeBtn);
-            modal.appendChild(modalContent);
-            document.body.appendChild(modal);
-        });
-
-        const name = document.createElement("div");
-        name.className = "gifName";
-        name.textContent = `${cleanName(p)} (${group} / ${level})`;
-
-        const reps = document.createElement("div");
-        reps.className = "gifReps";
-        reps.textContent = repeticoesPadrao;
-
-        card.appendChild(img);
-        card.appendChild(name);
-        card.appendChild(reps);
         preview.appendChild(card);
     });
+
+    // Scroll suave até o resultado
+    resultCard.scrollIntoView({ behavior: 'smooth' });
 }
 
-/* ====== EVENTOS ====== */
-document.getElementById("genBtn").addEventListener("click", () => {
-    const g = groupSelect.value;
-    const l = document.getElementById("levelSelect").value;
-    showExercises(g, l);
+// Função Modal (Zoom na imagem)
+function openModal(src) {
+    const modal = document.createElement("div");
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:1000;display:flex;justify-content:center;align-items:center;flex-direction:column;";
+    
+    modal.innerHTML = `
+        <img src="${src}" style="max-width:90%; max-height:80%; border-radius:10px; box-shadow: 0 0 20px rgba(255,255,255,0.2);">
+        <button style="margin-top:20px; padding:10px 20px; background:#ef4444; color:white; border:none; border-radius:5px; font-size:16px;">Fechar</button>
+    `;
+
+    modal.addEventListener("click", () => modal.remove());
+    document.body.appendChild(modal);
+}
+
+
+// ==========================================
+// 🎮 EVENTOS E BOTÕES
+// ==========================================
+
+// Carrega os grupos no Select ao iniciar
+window.addEventListener("load", () => {
+    const groupSelect = document.getElementById("groupSelect");
+    if(groupSelect) {
+        groupSelect.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+        Object.keys(gifs).forEach(key => {
+            const opt = document.createElement("option");
+            opt.value = key;
+            opt.textContent = key.charAt(0).toUpperCase() + key.slice(1);
+            groupSelect.appendChild(opt);
+        });
+    }
+    // Preenche também o select da Biblioteca (se existir)
+    atualizarGruposBiblioteca();
 });
 
-document.getElementById("randomBtn").addEventListener("click", () => {
+document.getElementById("genBtn")?.addEventListener("click", () => {
+    const group = document.getElementById("groupSelect").value;
+    const level = document.getElementById("levelSelect").value;
+    
+    if (!group) {
+        alert("Por favor, selecione um grupo muscular!");
+        return;
+    }
+    showExercises(group, level);
+});
+
+document.getElementById("randomBtn")?.addEventListener("click", () => {
     const groups = Object.keys(gifs);
-    const g = groups[Math.floor(Math.random() * groups.length)];
-    const lv = ["iniciante", "moderado", "avancado"][Math.floor(Math.random() * 3)];
-    groupSelect.value = g;
-    document.getElementById("levelSelect").value = lv;
-    showExercises(g, lv);
+    const randomGroup = groups[Math.floor(Math.random() * groups.length)];
+    const randomLevel = ["iniciante", "moderado", "avancado"][Math.floor(Math.random() * 3)];
+    
+    // Atualiza a UI
+    document.getElementById("groupSelect").value = randomGroup;
+    document.getElementById("levelSelect").value = randomLevel;
+    
+    showExercises(randomGroup, randomLevel);
 });
-
-window.addEventListener("load", () => { groupSelect.selectedIndex = 0; });
 
 document.getElementById("calculadora").addEventListener("click", () => {
     location.href = "calculadora.html";
 });
 
-/* ====== BLOQUEIOS ====== */
+// Bloqueio de Botão Direito (Proteção Básica)
 window.addEventListener("contextmenu", e => e.preventDefault());
-window.addEventListener("keydown", e => { if (e.ctrlKey && e.key === "u") e.preventDefault(); });
 
 
+// ==========================================
+// 📚 BIBLIOTECA DE TREINOS (ADMIN/EXTRA)
+// ==========================================
+function atualizarGruposBiblioteca() {
+    const grupoNovoSelect = document.getElementById("grupoNovo");
+    if(!grupoNovoSelect) return; // Se não existir na página, ignora
 
+    grupoNovoSelect.innerHTML = '<option value="">Filtrar por grupo...</option>';
+    Object.keys(gifs).forEach(grupo => {
+        const opt = document.createElement("option");
+        opt.value = grupo;
+        opt.textContent = grupo.charAt(0).toUpperCase() + grupo.slice(1);
+        grupoNovoSelect.appendChild(opt);
+    });
+}
 
+// Evento: Ao selecionar grupo na biblioteca, mostra os GIFs disponíveis naquele Select
+document.getElementById("grupoNovo")?.addEventListener("change", (e) => {
+    const grupo = e.target.value;
+    const gifSelect = document.getElementById("gifNovo");
+    
+    gifSelect.innerHTML = '<option value="">Selecione um exercício...</option>';
+    
+    if (gifs[grupo]) {
+        gifs[grupo].forEach(gifPath => {
+            const opt = document.createElement("option");
+            opt.value = gifPath;
+            opt.textContent = cleanName(gifPath);
+            gifSelect.appendChild(opt);
+        });
+    }
+});
 
-
-
-      const grupoNovoSelect = document.getElementById("grupoNovo");
-      const gifNovoSelect = document.getElementById("gifNovo");
-      
-
-      // Função para limpar nome do GIF
-      function cleanName(path) {
-          const parts = path.split("/");
-          return parts[parts.length-1].replace(".gif", "");
-      }
-
-      // Atualiza GIFs quando o grupo mudar
-      function atualizarGifsNovo() {
-          const grupo = grupoNovoSelect.value;
-          gifNovoSelect.innerHTML = '<option value="">Selecione o GIF</option>';
-          preview.innerHTML = ""; // limpa preview
-          if (!grupo || !gifs[grupo]) return;
-          gifs[grupo].forEach(gif => {
-              const opt = document.createElement("option");
-              opt.value = gif;
-              opt.textContent = cleanName(gif);
-              gifNovoSelect.appendChild(opt);
-          });
-      }
-
-      // Atualiza grupos
-      function atualizarGruposNovo() {
-          grupoNovoSelect.innerHTML = '<option value="">Selecione o grupo</option>';
-          Object.keys(gifs).forEach(grupo => {
-              const opt = document.createElement("option");
-              opt.value = grupo;
-              opt.textContent = grupo.charAt(0).toUpperCase() + grupo.slice(1);
-              grupoNovoSelect.appendChild(opt);
-          });
-          atualizarGifsNovo();
-      }
-
-      // Evento: mostrar GIF selecionado
-      gifNovoSelect.addEventListener("change", () => {
-          const gif = gifNovoSelect.value;
-          if (gif) {
-              preview.innerHTML = `<img src="${gif}" alt="GIF Selecionado" style="max-width:330px; border-radius: 14px;">`;
-          } else {
-              preview.innerHTML = "";
-          }
-      });
-
-      // Evento: atualizar GIFs ao mudar o grupo
-      grupoNovoSelect.addEventListener("change", atualizarGifsNovo);
-
-      // Inicializa grupos
-      atualizarGruposNovo();
-
-      // Função adicionar treino: apenas o GIF selecionado
-      function adicionarTreino() {
-          const grupo = grupoNovoSelect.value.trim().toLowerCase();
-          const nivel = document.getElementById("nivelNovo").value.trim().toLowerCase();
-          const gif = gifNovoSelect.value.trim();
-
-          if (!grupo || !nivel || !gif) {
-              alert("Preencha todos os campos!");
-              return;
-          }
-
-          let treinosPersonalizados = JSON.parse(localStorage.getItem("treinosPersonalizados")) || {};
-          if (!treinosPersonalizados[grupo]) treinosPersonalizados[grupo] = {};
-          if (!treinosPersonalizados[grupo][nivel]) treinosPersonalizados[grupo][nivel] = [];
-
-          // Adiciona apenas o GIF selecionado
-          treinosPersonalizados[grupo][nivel].push(gif);
-          localStorage.setItem("treinosPersonalizados", JSON.stringify(treinosPersonalizados));
-
-          alert(`✅ Treino adicionado ao grupo "${grupo}" com nível "${nivel}"`);
-          
-          // Mostra apenas o GIF salvo (substitui o preview)
-          preview.innerHTML = `<img src="${gif}" alt="GIF Selecionado" style="max-width:400px;">`;
-          
-      }
+// Mostra o GIF selecionado na biblioteca (apenas visualização rápida)
+document.getElementById("gifNovo")?.addEventListener("change", (e) => {
+    const src = e.target.value;
+    if(src) openModal(src); // Reusa a modal de zoom
+});
