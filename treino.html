@@ -8,6 +8,11 @@
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="style.css"> <!-- Seu CSS original -->
 
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+    
+    
     <!-- CSS EXTRA PARA O TIMER NOVO -->
     <style>
         /* Timer Card */
@@ -54,9 +59,6 @@
         }
     </style>
 
-    <!-- PWA -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#10b981">
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -64,6 +66,38 @@
             });
         }
     </script>
+    <button id="installApp" style="display: none; background: #10b981; color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; margin: 20px auto; cursor: pointer;">
+    📲 Instalar App
+</button>
+
+<script>
+    let deferredPrompt;
+    const installBtn = document.getElementById('installApp');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Previne o Chrome de mostrar a barra automática chata
+        e.preventDefault();
+        // Guarda o evento para usar depois
+        deferredPrompt = e;
+        // Mostra nosso botão lindo
+        installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            // Mostra o prompt nativo
+            deferredPrompt.prompt();
+            // Espera o usuário aceitar ou não
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`Resultado: ${outcome}`);
+            // Limpa a variável
+            deferredPrompt = null;
+            // Esconde o botão
+            installBtn.style.display = 'none';
+        }
+    });
+</script>
+
 </head>
 <body>
 
