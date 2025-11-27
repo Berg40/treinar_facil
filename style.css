@@ -166,7 +166,7 @@ button:focus {
 
 .preview {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 14px;
     margin-top: 12px;
 }
@@ -296,81 +296,4 @@ footer {
     color: var(--red);
     font-style: italic;
     font-size: 30px;
-}
-.timer-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: rgba(0,0,0,0.6);
-    padding: 10px;
-    padding-bottom: 20px;
-    border-radius: 20px;
-    box-shadow: 0 0 20px rgba(255,255,255,0.2);
-}
-
-input[type="number"] {
-    width: 100px;
-    padding: 10px;
-    border-radius: 10px;
-    border: none;
-    text-align: center;
-    font-size: 1em;
-    margin-bottom: 20px;
-    outline: none;
-}
-
-button {
-    padding: 12px 25px;
-    font-size: 1em;
-    border: none;
-    border-radius: 15px;
-    cursor: pointer;
-    background: green;
-    color: #1e1e2f;
-    font-weight: bold;
-    transition: all 0.3s ease;
-}
-
-button:hover {
-    background: #ff0800;
-    transform: scale(1.1);
-}
-
-.timer-circle {
-    position: relative;
-    width: 200px;
-    height: 200px;
-    margin-top: 20px;
-}
-
-.timer-circle svg {
-    transform: rotate(-90deg);
-}
-
-.timer-circle circle {
-    fill: none;
-    stroke-width: 15;
-    stroke-linecap: round;
-}
-
-.timer-circle .bg {
-    stroke: rgba(255,255,255,0.1);
-}
-
-.timer-circle .progress {
-    stroke: #f10909;
-    stroke-dasharray: 565.48; /* 2πr com r=90 */
-    stroke-dashoffset: 565.48;
-    transition: stroke-dashoffset 1s linear;
-}
-
-.time-display {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2em;
-    font-weight: bold;
-    color: #fff;
-    text-shadow: 0 0 10px #f9d423;
 }

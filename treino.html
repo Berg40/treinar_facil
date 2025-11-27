@@ -3,166 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Treino Fácil</title>
-    <link rel="stylesheet" href="style.css">
-    
+    <title>Treino Fácil - Timer Pro</title>
+    <link rel="shortcut icon" href="logo.png" type="image/png">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link rel="stylesheet" href="style.css"> <!-- Seu CSS original -->
+
+    <!-- CSS EXTRA PARA O TIMER NOVO -->
+    <style>
+        /* Timer Card */
+        .timer-card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-top: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .timer-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: #10b981; }
+        
+        /* Chips */
+        .timer-chips { display: flex; gap: 8px; justify-content: center; margin-bottom: 25px; flex-wrap: wrap; }
+        .chip {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; padding: 8px 16px; border-radius: 20px; cursor: pointer; transition: 0.2s;
+        }
+        .chip:hover, .chip.active { background: #10b981; color: #000; border-color: #10b981; transform: translateY(-2px); font-weight: bold; }
+
+        /* Círculo Neon */
+        .timer-wrapper { display: flex; justify-content: center; margin-bottom: 20px; }
+        .timer-circle { position: relative; width: 200px; height: 200px; }
+        .timer-circle svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+        .timer-circle .bg { fill: none; stroke: rgba(255,255,255,0.05); stroke-width: 8; }
+        .timer-circle .progress {
+            fill: none; stroke: #10b981; stroke-width: 8; stroke-linecap: round;
+            transition: stroke-dashoffset 1s linear; filter: drop-shadow(0 0 8px #10b981);
+        }
+        .time-display {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 3rem; font-weight: 700; color: #fff;
+        }
+
+        /* Controles */
+        .timer-controls { display: flex; gap: 10px; justify-content: center; }
+        .input-wrapper input { 
+            background: #334155; border: none; padding: 12px; color: #fff; border-radius: 8px; width: 100px; text-align: center;
+        }
+        .btn-timer {
+            background: #10b981; color: #000; border: none; padding: 12px 24px; border-radius: 8px;
+            font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;
+        }
+    </style>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('Erro SW:', err));
+            });
+        }
+    </script>
 </head>
 <body>
-  <header> 
-      <h1>🥊TreinoFácil</h1>
-  </header>
+
+<header> 
+    <h1>🥊TreinoFácil</h1>
+</header>
   
-  <main class="container">
+<main class="container">
     <div class="info1">Escolha um grupo e nível e clique em <strong>Gerar treino</strong>.</div>
 
     <div class="card">
-      <div class="controls">
-        <label>
-          Grupo muscular:
-          <select id="groupSelect"></select>
-        </label>
-
-        <label>
-          Nível:
-          <select id="levelSelect">
-            <option value="iniciante">Iniciante</option>
-            <option value="moderado">Moderado</option>
-            <option value="avancado">Avançado</option>
-          </select>
-        </label>
-        <div style="flex:1"></div>
-      </div>
-
-      <button class="btn1" id="genBtn" style="margin-top: 30px;">Gerar treino</button>
-      <button class="btn1" id="randomBtn">Gerar aleatório</button>
-      <button class="btn1" id="calculadora" style="background: rgba(139, 139, 41, 0.781);">Calculadora Fitness</button>
-
-      <h3 style="text-align: center;">➕Consultar Treino</h3> 
-      
-      <!-- Adicionar treino -->
-      <div class="card2" id="addWorkout" >
-          <select style="margin-bottom: 30px;" id="grupoNovo"></select>
-          <label for="gifNovo"></label>
-          <select id="gifNovo"></select>
-      </div>
-
-      <div class="timer-container">
-            <h1 class="h1">⏱ Timer em Segundos</h1>
-            <input type="number" id="secondsInput" placeholder="Segundos" min="1">
-            <button id="startPauseBtn">Iniciar</button>
-
-            <div class="timer-circle">
-                <svg width="200" height="200">
-                    <circle class="bg" cx="100" cy="100" r="90"></circle>
-                    <circle class="progress" cx="100" cy="100" r="90"></circle>
-                </svg>
-                <div class="time-display" id="timeDisplay">00:00</div>
-            </div>
-
-            <audio id="gongSound" src="audio/gong-sound2.mp3" preload="auto"></audio>
+        <div class="controls">
+            <label>Grupo muscular: <select id="groupSelect"></select></label>
+            <label>
+                Nível:
+                <select id="levelSelect">
+                    <option value="iniciante">Iniciante</option>
+                    <option value="moderado">Moderado</option>
+                    <option value="avancado">Avançado</option>
+                </select>
+            </label>
         </div>
-            
+
+        <button class="btn1" id="genBtn" style="margin-top: 30px;">Gerar treino</button>
+        <button class="btn1" id="randomBtn">Gerar aleatório</button>
+        <button class="btn1" id="calculadora" style="background: #fbbf24; color: #000;">Calculadora Fitness</button>
+
+        <!-- Timer Moderno -->
+        <div class="card timer-card" style="background: #1e293b; padding: 20px; border-radius: 15px; text-align: center; margin-top: 20px;">
     
+    <h2 style="color: #10b981; margin-bottom: 15px;">⏱ Descanso</h2>
+
+    <!-- Botões Rápidos -->
+    <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+        <button onclick="iniciarRapido(30)" style="padding: 8px 15px; border-radius: 20px; border: 1px solid #555; background: #333; color: white; cursor: pointer;">30s</button>
+        <button onclick="iniciarRapido(45)" style="padding: 8px 15px; border-radius: 20px; border: 1px solid #555; background: #333; color: white; cursor: pointer;">45s</button>
+        <button onclick="iniciarRapido(60)" style="padding: 8px 15px; border-radius: 20px; border: 1px solid #555; background: #333; color: white; cursor: pointer;">60s</button>
+    </div>
+
+    <!-- Mostrador Grande -->
+    <div id="mostrador" style="font-size: 4rem; font-weight: bold; color: white; margin: 20px 0;">
+        00:00
+    </div>
+
+    <!-- Barra de Progresso -->
+    <div style="width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-bottom: 20px;">
+        <div id="barra" style="width: 100%; height: 100%; background: #10b981; transition: width 1s linear;"></div>
+    </div>
+
+    <!-- Botões de Controle -->
+    <div>
+        <input type="number" id="tempoManual" placeholder="Seg" style="padding: 10px; width: 60px; border-radius: 5px; border: none; text-align: center;">
+        <button id="btnAcao" onclick="alternarTimer()" style="padding: 10px 20px; background: #10b981; color: black; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">
+            INICIAR
+        </button>
+        <button onclick="pararTimer()" style="padding: 10px 20px; background: #ef4444; color: white; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">
+            PARAR
+        </button>
+    </div>
+
+</div>
 
     </div>
 
-    <div id="result" class="card" style="margin-top:14px">
+    <div id="result" class="card" style="margin-top:14px; display:none;">
         <div class="info"></div>
         <div id="preview" class="preview"></div>
     </div>
 
-    <div style="height:12px"></div>
-    <div class="card">
-      <div class="info">Como funciona: cada lista de GIFs é dividida automaticamente em 3 níveis (iniciante/moderado/avançado).</div>
-    </div>
+</main>
 
-  </main>
+<footer>Copyright&copy; Berg Andrade 2025.</footer>
 
-  <footer>Copyright&copy; Berg Andrade 2025.</footer>
+<script src="script.js"></script>
 
-  <!-- Script principal -->
-  <script src="script.js"></script>
+<script>
+    let tempoTotal = 0;
+    let tempoRestante = 0;
+    let intervalo = null;
+    let rodando = false;
 
-  <script>
-    const secondsInput = document.getElementById('secondsInput');
-    const startPauseBtn = document.getElementById('startPauseBtn');
-    const timeDisplay = document.getElementById('timeDisplay');
-    const gongSound = document.getElementById('gongSound');
-    const progressCircle = document.querySelector('.progress');
+    const display = document.getElementById("mostrador");
+    const barra = document.getElementById("barra");
+    const btn = document.getElementById("btnAcao");
+    const input = document.getElementById("tempoManual");
+    // Tenta carregar o som, mas não trava se falhar
+    const som = new Audio('audio/gong-sound2.mp3'); 
 
-    let totalSeconds = 0;
-    let remainingSeconds = 0;
-    let timer = null;
-    let isRunning = false;
-
-    const radius = 90;
-    const circumference = 2 * Math.PI * radius;
-    progressCircle.style.strokeDasharray = circumference;
-    progressCircle.style.strokeDashoffset = circumference;
-
-    function updateDisplay() {
-        let minutes = Math.floor(remainingSeconds / 60);
-        let seconds = remainingSeconds % 60;
-        timeDisplay.textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-        const offset = circumference - (remainingSeconds / totalSeconds) * circumference;
-        progressCircle.style.strokeDashoffset = offset;
+    function iniciarRapido(segundos) {
+        tempoTotal = segundos;
+        tempoRestante = segundos;
+        input.value = segundos;
+        comecarContagem();
     }
 
-    function resetTimer(preserveInput = true) {
-        clearInterval(timer);
-        timer = null;
-        isRunning = false;
-        remainingSeconds = totalSeconds;
-        if (!preserveInput) {
-            totalSeconds = 0;
-            secondsInput.value = '';
-            timeDisplay.textContent = "00:00";
-            progressCircle.style.strokeDashoffset = circumference;
-            startPauseBtn.textContent = 'Iniciar';
+    function alternarTimer() {
+        if (rodando) {
+            pausar();
         } else {
-            updateDisplay();
-            startPauseBtn.textContent = 'Iniciar';
-            progressCircle.style.strokeDashoffset = circumference;
-        }
-    }
-
-    function tick() {
-        if (remainingSeconds > 0) {
-            remainingSeconds--;
-            updateDisplay();
-        } else {
-            clearInterval(timer);
-            isRunning = false;
-            gongSound.play();
-            
-            resetTimer(true); // Mantém último valor digitado para reiniciar
-        }
-    }
-
-    startPauseBtn.addEventListener('click', () => {
-        if (!isRunning) {
-            if (totalSeconds === 0) {
-                let seconds = parseInt(secondsInput.value);
-                if (isNaN(seconds) || seconds <= 0) {
-                    alert("Digite um tempo válido!");
-                    return;
-                }
-                totalSeconds = seconds;
-                remainingSeconds = totalSeconds;
-                updateDisplay();
+            // Se não tem tempo definido, pega do input
+            if (tempoRestante === 0) {
+                let valor = parseInt(input.value);
+                if (!valor || valor <= 0) return alert("Digite um tempo!");
+                tempoTotal = valor;
+                tempoRestante = valor;
             }
-            timer = setInterval(tick, 1000);
-            startPauseBtn.textContent = 'Pausar';
-            isRunning = true;
-        } else {
-            clearInterval(timer);
-            startPauseBtn.textContent = 'Continuar';
-            isRunning = false;
+            comecarContagem();
         }
-    });
-</script>
+    }
 
-  
+    function comecarContagem() {
+        clearInterval(intervalo);
+        rodando = true;
+        
+        // Atualiza visual do botão
+        btn.innerText = "PAUSAR";
+        btn.style.background = "#fbbf24"; // Amarelo
+        
+        atualizarTela();
+
+        intervalo = setInterval(() => {
+            tempoRestante--;
+            atualizarTela();
+
+            if (tempoRestante <= 0) {
+                finalizar();
+            }
+        }, 1000);
+    }
+
+    function pausar() {
+        clearInterval(intervalo);
+        rodando = false;
+        btn.innerText = "CONTINUAR";
+        btn.style.background = "#38bdf8"; // Azul
+    }
+
+    function pararTimer() {
+        clearInterval(intervalo);
+        rodando = false;
+        tempoRestante = 0;
+        tempoTotal = 0;
+        
+        display.innerText = "00:00";
+        barra.style.width = "100%";
+        
+        btn.innerText = "INICIAR";
+        btn.style.background = "#10b981"; // Verde
+        input.value = "";
+    }
+
+    function finalizar() {
+        clearInterval(intervalo);
+        rodando = false;
+        display.innerText = "FIM!";
+        try { som.play(); } catch(e) { console.log("Sem som"); }
+        
+        setTimeout(() => {
+            pararTimer();
+        }, 2000);
+    }
+
+    function atualizarTela() {
+        let min = Math.floor(tempoRestante / 60);
+        let seg = tempoRestante % 60;
+        display.innerText = `${min < 10 ? '0'+min : min}:${seg < 10 ? '0'+seg : seg}`;
+        
+        // Atualiza barra
+        let porcentagem = (tempoRestante / tempoTotal) * 100;
+        barra.style.width = porcentagem + "%";
+    }
+</script>
 
 </body>
 </html>

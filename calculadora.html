@@ -7,6 +7,26 @@
     <!-- Ícones do Google (Material Icons) para visual moderno -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="tmb.css">
+    <link rel="shortcut icon" href="img/logo_treinoFacil.png" type="image/png">
+
+
+        <!-- Configuração PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Script para registrar o PWA -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('App instalado/registrado com sucesso!', reg.scope))
+            .catch(err => console.log('Falha ao registrar App:', err));
+        });
+    }
+    </script>
+
+
 </head>
 <body>
 
