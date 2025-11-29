@@ -10,7 +10,7 @@ const ASSETS = [
   './tmb.css',
   './script.js',
   './script_tmb.js',
-  './img/logo.png',       // <--- CAMINHO CORRETO AQUI
+  './img/logo_treinoFacil.png',       // <--- CAMINHO CORRETO AQUI
   './manifest.json',
   './audio/gong-sound2.mp3'
 ];
