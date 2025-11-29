@@ -11,6 +11,7 @@ const ASSETS = [
   './script_tmb.js',
   '.img/logo_treino_facil.png',
   '.style2.css',
+  './muaythai.html', // <--- ADICIONE AQUI
          // <--- ADICIONE ESTA LINHA (não esqueça a vírgula na linha anterior)
   './manifest.json'    // <--- Importante salvar o manifesto também
   
