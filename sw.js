@@ -1,22 +1,22 @@
-const CACHE_NAME = 'treinofacil-v1';
+const CACHE_NAME = 'treinofacil-v3'; // Mudei para v3
 const ASSETS = [
   './',
   './index.html',
   './treino.html',
   './calculadora.html',
   './dieta.html',
+  './muaythai.html',
   './style.css',
   './tmb.css',
   './script.js',
   './script_tmb.js',
-  '.img/logo_treino_facil.png',
-  '.style2.css',
-  './muaythai.html', // <--- ADICIONE AQUI
-         // <--- ADICIONE ESTA LINHA (não esqueça a vírgula na linha anterior)
-  './manifest.json'    // <--- Importante salvar o manifesto também
-  
-  // Adicione aqui outras imagens ou arquivos que queira que funcionem offline
+  './img/logo.png',       // <--- CAMINHO CORRETO AQUI
+  './manifest.json',
+  './audio/gong-sound2.mp3'
 ];
+
+
+
 
 // Instalação: Salva os arquivos no cache
 self.addEventListener('install', (e) => {

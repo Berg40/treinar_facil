@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mestre Muay Thai - TreinoFácil</title>
-    <link rel="shortcut icon" href="logo.png" type="image/png">
+    <link rel="shortcut icon" href="img/logo_treinoFacil.png" type="image/png">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
@@ -134,10 +134,17 @@
     </div>
     <div id="statusLabel" style="color: var(--muted); font-size: 1rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 2px;">PREPARAR</div>
 
-        <!-- Botões -->
-        <button id="btnStartTimer" onclick="toggleFightTimer()" style="width: 100%; padding: 15px; font-size: 1.2rem; font-weight: bold; background: var(--primary); color: #000; border: none; border-radius: 10px; cursor: pointer;">
+            <!-- Botões do Timer -->
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+        <button id="btnStartTimer" onclick="toggleFightTimer()" style="flex: 2; padding: 15px; font-size: 1.2rem; font-weight: bold; background: var(--primary); color: #000; border: none; border-radius: 10px; cursor: pointer;">
             INICIAR
         </button>
+        
+        <button onclick="resetFightTimer()" style="flex: 1; padding: 15px; font-size: 1.2rem; font-weight: bold; background: #ef4444; color: #fff; border: none; border-radius: 10px; cursor: pointer;">
+            PARAR
+        </button>
+    </div>
+
     </div>
 
 <!-- Som do Gongo (Reutilizando o mesmo arquivo) -->
@@ -350,11 +357,10 @@
 
         // =========================================
     // ⏱️ LÓGICA DO ROUND TIMER (LUTA/DESCANSO)
-    // =========================================
+
     let fightInterval = null;
     let fightSeconds = 0;
-    let isFighting = false; // true = lutando, false = descansando ou parado
-    let isRunning = false;  // true = relógio andando
+    let isRunning = false;  
     let currentMode = 'round'; // 'round' ou 'rest'
 
     const display = document.getElementById('timerDisplay');
@@ -371,14 +377,32 @@
             btnTimer.style.background = "#fbbf24"; // Amarelo
         } else {
             // Iniciar / Continuar
-            if (fightSeconds <= 0 && !isFighting) {
-                // Primeiro início
-                setupRound(); 
+            if (fightSeconds <= 0) {
+                setupRound(); // Começa do zero se estiver zerado
             }
             startTick();
             btnTimer.innerText = "PAUSAR";
-            btnTimer.style.background = "#ef4444"; // Vermelho
+            btnTimer.style.background = "#38bdf8"; // Azul
         }
+    }
+
+    function resetFightTimer() {
+        // Para tudo e zera
+        clearInterval(fightInterval);
+        isRunning = false;
+        fightSeconds = 0;
+        currentMode = 'round';
+
+        // Reseta visual
+        const rMin = parseInt(document.getElementById('roundTime').value) || 3;
+        display.innerText = `${rMin.toString().padStart(2,'0')}:00`;
+        
+        statusLbl.innerText = "PREPARAR";
+        statusLbl.style.color = "var(--muted)";
+        display.style.color = "#fff";
+        
+        btnTimer.innerText = "INICIAR";
+        btnTimer.style.background = "var(--primary)"; // Verde
     }
 
     function setupRound() {
@@ -386,7 +410,7 @@
         fightSeconds = rMin * 60;
         currentMode = 'round';
         updateVisuals('LUTAR!', '#10b981', '#fff'); // Verde
-        gong.play();
+        try { gong.play(); } catch(e){}
     }
 
     function setupRest() {
@@ -394,8 +418,58 @@
         fightSeconds = rMin * 60;
         currentMode = 'rest';
         updateVisuals('DESCANSO', '#38bdf8', '#38bdf8'); // Azul
-        gong.play();
+        try { gong.play(); } catch(e){}
     }
+
+    function startTick() {
+        isRunning = true;
+        fightInterval = setInterval(() => {
+            fightSeconds--;
+            updateDisplayFormatted();
+
+            if (fightSeconds < 0) {
+                clearInterval(fightInterval);
+                if (currentMode === 'round') {
+                    setupRest();
+                    startTick();
+                } else {
+                    setupRound();
+                    startTick();
+                }
+            }
+        }, 1000);
+    }
+
+    function updateDisplayFormatted() {
+        // Evita mostrar números negativos na transição
+        let sTotal = Math.max(0, fightSeconds);
+        let m = Math.floor(sTotal / 60);
+        let s = sTotal % 60;
+        display.innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    }
+
+    function updateVisuals(text, colorLabel, colorTime) {
+        statusLbl.innerText = text;
+        statusLbl.style.color = colorLabel;
+        display.style.color = colorTime;
+    }
+
+
+        function setupRound() {
+            const rMin = parseInt(document.getElementById('roundTime').value) || 3;
+            fightSeconds = rMin * 60;
+            currentMode = 'round';
+            updateVisuals('LUTAR!', '#10b981', '#fff'); // Verde
+            gong.play();
+        }
+
+        function setupRest() {
+            const rMin = parseInt(document.getElementById('restTime').value) || 1;
+            fightSeconds = rMin * 60;
+            currentMode = 'rest';
+            updateVisuals('DESCANSO', '#38bdf8', '#38bdf8'); // Azul
+            gong.play();
+        }
 
     function startTick() {
         isRunning = true;
